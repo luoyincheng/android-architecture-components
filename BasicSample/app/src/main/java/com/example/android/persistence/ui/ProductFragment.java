@@ -25,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.example.android.persistence.R;
 import com.example.android.persistence.databinding.ProductFragmentBinding;
@@ -59,8 +60,7 @@ public class ProductFragment extends Fragment {
     private final CommentClickCallback mCommentClickCallback = new CommentClickCallback() {
         @Override
         public void onClick(Comment comment) {
-            // no-op
-
+            Toast.makeText(getActivity(), "Detail Clicked", Toast.LENGTH_SHORT).show();
         }
     };
 
