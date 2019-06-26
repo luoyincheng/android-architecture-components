@@ -17,15 +17,21 @@
 package com.example.android.persistence.ui;
 
 import android.text.Editable;
+import android.util.Log;
 import android.view.View.OnClickListener;
+
+import androidx.annotation.NonNull;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.databinding.DataBindingUtil;
+
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,72 +44,88 @@ import com.example.android.persistence.viewmodel.ProductListViewModel;
 
 import java.util.List;
 
+// TODO: 19-6-26 fragment生命周期
 public class ProductListFragment extends Fragment {
 
-    public static final String TAG = "ProductListViewModel";
+	public static final String TAG = "ProductListViewModel";
 
-    private ProductAdapter mProductAdapter;
+	private ProductAdapter mProductAdapter;
 
-    private ListFragmentBinding mBinding;
+	private ListFragmentBinding mBinding;
 
-    @Nullable
-    @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
-            @Nullable Bundle savedInstanceState) {
-        mBinding = DataBindingUtil.inflate(inflater, R.layout.list_fragment, container, false);
+	@Nullable
+	@Override
+	public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		Log.i("lifeCycle", "onCreateView");
+		mBinding = DataBindingUtil.inflate(inflater, R.layout.list_fragment, container, false);
 
-        mProductAdapter = new ProductAdapter(mProductClickCallback);
-        mBinding.productsList.setAdapter(mProductAdapter);
+		mProductAdapter = new ProductAdapter(mProductClickCallback);
+		mBinding.productsList.setAdapter(mProductAdapter);
+		float resule = calculate(10000.0f, 0.0f, 0.06f, 12);
+		Log.i("getResult", resule + "");
+		return mBinding.getRoot();
+	}
 
-        return mBinding.getRoot();
-    }
+	private float calculate(float base, float last, float ratio, int times) {
+		if (times > 0) {
+			last = base + last * (1 + ratio);
+			times--;
+			return calculate(base, last, ratio, times);
+		}
+		return last;
+	}
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        final ProductListViewModel viewModel =
-                ViewModelProviders.of(this).get(ProductListViewModel.class);
+	@Override
+	public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+		/*
+		 * 1.检查Activity是否存在
+		 * 2.检查Application是否存在
+		 * 3.获取AndroidViewModelFactory实例
+		 */
+		final ProductListViewModel viewModel =
+				ViewModelProviders.of(this).get(ProductListViewModel.class);
 
-        mBinding.productsSearchBtn.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Editable query = mBinding.productsSearchBox.getText();
-                if (query == null || query.toString().isEmpty()) {
-                    subscribeUi(viewModel.getProducts());
-                } else {
-                    subscribeUi(viewModel.searchProducts("*" + query + "*"));
-                }
-            }
-        });
+		mBinding.productsSearchBtn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Editable query = mBinding.productsSearchBox.getText();
+				if (query == null || query.toString().isEmpty()) {
+					subscribeUi(viewModel.getProducts(), 2);
+				} else {
+					subscribeUi(viewModel.searchProducts("*" + query + "*"), 3);
+				}
+			}
+		});
+		subscribeUi(viewModel.getProducts(), 1);
+	}
 
-        subscribeUi(viewModel.getProducts());
-    }
+	private void subscribeUi(LiveData<List<ProductEntity>> liveData, int identifyNumber) {
+		Log.i("subscribeUi", identifyNumber + " | " );
+		// Update the list when the data changes
+		liveData.observe(this, new Observer<List<ProductEntity>>() {
+			@Override
+			public void onChanged(@Nullable List<ProductEntity> myProducts) {
+				if (myProducts != null) {
+					mBinding.setIsLoading(false);
+					mProductAdapter.setProductList(myProducts);
+				} else {
+					mBinding.setIsLoading(true);
+				}
+				// espresso does not know how to wait for data binding's loop so we execute changes
+				// sync.
+				mBinding.executePendingBindings();
+			}
+		});
+	}
 
-    private void subscribeUi(LiveData<List<ProductEntity>> liveData) {
-        // Update the list when the data changes
-        liveData.observe(this, new Observer<List<ProductEntity>>() {
-            @Override
-            public void onChanged(@Nullable List<ProductEntity> myProducts) {
-                if (myProducts != null) {
-                    mBinding.setIsLoading(false);
-                    mProductAdapter.setProductList(myProducts);
-                } else {
-                    mBinding.setIsLoading(true);
-                }
-                // espresso does not know how to wait for data binding's loop so we execute changes
-                // sync.
-                mBinding.executePendingBindings();
-            }
-        });
-    }
+	private final ProductClickCallback mProductClickCallback = new ProductClickCallback() {
+		@Override
+		public void onClick(Product product) {
 
-    private final ProductClickCallback mProductClickCallback = new ProductClickCallback() {
-        @Override
-        public void onClick(Product product) {
-
-            if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
-                ((MainActivity) getActivity()).show(product);
-            }
-        }
-    };
+			if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+				((MainActivity) getActivity()).show(product);
+			}
+		}
+	};
 }
