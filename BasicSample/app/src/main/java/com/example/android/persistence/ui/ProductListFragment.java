@@ -61,18 +61,7 @@ public class ProductListFragment extends Fragment {
 
 		mProductAdapter = new ProductAdapter(mProductClickCallback);
 		mBinding.productsList.setAdapter(mProductAdapter);
-		float resule = calculate(10000.0f, 0.0f, 0.06f, 12);
-		Log.i("getResult", resule + "");
 		return mBinding.getRoot();
-	}
-
-	private float calculate(float base, float last, float ratio, int times) {
-		if (times > 0) {
-			last = base + last * (1 + ratio);
-			times--;
-			return calculate(base, last, ratio, times);
-		}
-		return last;
 	}
 
 	@Override
@@ -91,17 +80,16 @@ public class ProductListFragment extends Fragment {
 			public void onClick(View v) {
 				Editable query = mBinding.productsSearchBox.getText();
 				if (query == null || query.toString().isEmpty()) {
-					subscribeUi(viewModel.getProducts(), 2);
+					subscribeUi(viewModel.getProducts());
 				} else {
-					subscribeUi(viewModel.searchProducts("*" + query + "*"), 3);
+					subscribeUi(viewModel.searchProducts("*" + query + "*"));
 				}
 			}
 		});
-		subscribeUi(viewModel.getProducts(), 1);
+		subscribeUi(viewModel.getProducts());
 	}
 
-	private void subscribeUi(LiveData<List<ProductEntity>> liveData, int identifyNumber) {
-		Log.i("subscribeUi", identifyNumber + " | " );
+	private void subscribeUi(LiveData<List<ProductEntity>> liveData) {
 		// Update the list when the data changes
 		liveData.observe(this, new Observer<List<ProductEntity>>() {
 			@Override
